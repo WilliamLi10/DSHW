@@ -3,11 +3,8 @@ Board::Board(const std::string& PT1, const std::string& PT2, const std::string& 
 : P1(PT1), P2(PT2), Blank(TBlank)
 {
 	m_data = new int*[4];
-	elements = new int[4];
-	elements[0] = 0;
-	elements[1] = 0;
-	elements[2] = 0;
-	elements[3] = 0;
+
+
  }
 std::ostream& operator << (std::ostream& ostr, const Board& b)
 {
