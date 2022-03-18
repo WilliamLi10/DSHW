@@ -2,25 +2,13 @@
 #include<iostream>
 #include<vector>
 #include<algorithm>
+#include<string>
+#include<algorithm>
 #include "square.h"
 #include "Zone.h"
+#include"point.h"
 typedef std::vector<std::vector<Square>> Grid;
 int MaxStars = 0;
-int NumStarsInZone(const Grid& CurGrid, char ZoneLetter)
-{
-	int StarCount = 0;
-	for(int i = 0; i != CurGrid.size(); ++i)
-	{
-		for(int j = 0; j != CurGrid[0].size(); ++j)
-		{
-			if(CurGrid[i][j].getZone() == ZoneLetter && CurGrid[i][j].getVal() == '@')
-			{
-				++StarCount;
-			}
-		}
-	}
-	return StarCount;
-}
 int NumStarsInRow(const Grid& CurGrid, int row)
 {
 	int StarCount = 0;
@@ -47,11 +35,8 @@ int NumStarsInColumn(const Grid& CurGrid, int column)
 }
 bool CanPut(const Grid& CurGrid, int row, int column)
 {
-	if(NumStarsInZone(CurGrid,CurGrid[row][column].getZone()) >= MaxStars)
-	{
-		return false;
-	}
-	else if(NumStarsInRow(CurGrid,row) >= MaxStars)
+
+	if(NumStarsInRow(CurGrid,row) >= MaxStars)
 	{
 		return false;
 	}
@@ -75,8 +60,7 @@ bool CanPut(const Grid& CurGrid, int row, int column)
 	{
 		return false;
 	}
-	else if( CurGrid[std::min(row+1,int(CurGrid.size() - 1))]
-		[std::min(column+1,int(CurGrid[column].size()))].getVal() == '@')
+	else if( CurGrid[std::min(row+1,int(CurGrid.size() - 1))][std::min(column+1,int(CurGrid[row].size() - 1))].getVal() == '@')
 	{
 		return false;
 	}
@@ -94,9 +78,19 @@ bool CanPut(const Grid& CurGrid, int row, int column)
 	}
 	return true;
 }
+bool GridSolved(const std::vector<Zone> Zones)
+{
+	for(int i = 0; i != Zones.size(); ++i)
+	{
+		if(Zones[i].StarCount != MaxStars)
+		{
+			return false;
+		}
+	}
+	return true;
+}
 
-
-Grid CreateGrid(char* FileName)
+Grid CreateGrid(char* FileName,std::vector<Zone>& Zones)
 {
 	std::ifstream inFile;
 	inFile.open(FileName);
@@ -109,43 +103,66 @@ Grid CreateGrid(char* FileName)
 	int square_count;
 	while(inFile >> newZone >> square_count)
 	{
-		int x, y;
-		for(int i = 0; i != square_count; ++i)
+		Zones.push_back(Zone(newZone, square_count));
+		for (int i = 0; i != square_count; ++i)
 		{
+			int x, y;
 			inFile >> x >> y;
+			Zones.back().Points.push_back(Point(x, y));
 			retGrid[y][x].SetZone(newZone);
 		}
 		//std::cout << [i][j].getZone() <<' ';
 	}
 	return retGrid;
 }
-void Solve(Grid& CurGrid, std::vector<Grid>& FailedGrids, std::vector<Grid>& SolvedGrids)
+void Solve(const std::vector<Zone>& Zones, Grid& CurGrid,Grid& SolvedGrids, int CurPoint)
 {
-	
+	for (int i = CurPoint; i != Zones.size(); ++i)
+	{
+		if (GridSolved(Zones))
+		{
+			SolvedGrids.push_back(Grid(CurGrid));
+			return;
+		}
+		else
+		{
+			for (int j = 0; j != Zones[i].Points.size(); ++j)
+			{
+				if (CanPut(CurGrid, Zones[i].Points[j].y, Zones[i].Points[j].x))
+				{
+					CurGrid[Zones[i].Points[j].y][Zones[i].Points[j].x].SetVal('@');
+					++Zones[i].StarCount;
+					Solve(Zones, CurGrid, SolvedGrids, j + 1);
+					CurGrid[Zones[i].Points[j].y][Zones[i].Points[j].x].SetVal('.');
+				}
+			}
+			if (Zones[i].StarCount != MaxStars)
+			{
+				return;
+			}
+		}
+	}
 }
 int main(int argc, char* argv[])
 {
 	std::ifstream inFile;
+	std::ofstream outFile;
 	inFile.open(argv[1]);
 	MaxStars = *argv[3] - '0';
-	std::vector<Square> ZoneStartPts;
-	Grid CurGrid = CreateGrid(argv[1]);
-	CurGrid[0][0].SetVal('@');
-	for(int i = 0; i != CurGrid.size(); ++i)
+	std::vector<Zone> Zones;
+	std::vector<Point> Stars;
+	Grid CurGrid = CreateGrid(argv[1], Zones);
+	std::sort(Zones.begin(), Zones.end());
+	for (int i = 0; i  != Zones.size(); ++i)
 	{
-		for(int j = 0; j != CurGrid[i].size(); ++j)
+		std::cout << Zones[i].size << std::endl;
+	}
+	for (int i = 0; i != CurGrid.size(); ++i)
+	{
+		for (int j = 0; j != CurGrid[i].size(); ++j)
 		{
-			std::cout << CurGrid[i][j].getVal() <<' ';
+			std::cout << CurGrid[i][j].getZone();
 		}
 		std::cout << std::endl;
 	}
-	if(CanPut(CurGrid,0,2))
-	{
-		std::cout << "True" << std::endl;
-	}
-	else
-	{
-		std::cout <<"False" << std::endl;
-	}
-	//DeleteZones(ZoneStartPts);
 }
